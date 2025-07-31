@@ -11,15 +11,17 @@
 // authenticate();
 
 const express = require("express");
+const cors = require('cors');
 require("dotenv").config();
 const app = express();
 const { sequelize } = require("./models");
 
 app.use(express.json());
+app.use(cors());
+
 app.use("/api/auth", require("./routes/auth"));
-
-
 app.use("/api/user", require("./routes/user")); // where user.js has the protected route
+app.use("/api/challenges", require("./routes/challenges"));
 
 
 
