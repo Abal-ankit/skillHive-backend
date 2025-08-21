@@ -1,31 +1,48 @@
-// const sequelize = require('./config/db');
-// async function authenticate() {
-//     try {
-//         await sequelize.authenticate();
-//         console.log("Connection has been established successfully.");
-//     } catch (error) {
-//         console.error("Unable to connect to the database:", error);
-//     }
-// }
-
-// authenticate();
-
 const express = require("express");
 const cors = require('cors');
 require("dotenv").config();
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
 const { sequelize } = require("./models");
+const jwt = require('jsonwebtoken');
 
 app.use(express.json());
 app.use(cors());
 
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/user", require("./routes/user")); // where user.js has the protected route
+app.use("/api/user", require("./routes/user"));
 app.use("/api/challenges", require("./routes/challenges"));
 
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 
 
+io.use((socket, next) => {
+  console.log("Hi");
+  const token = socket.handshake.auth.token;
+
+  if (!token) {
+    return next(new Error("Authentication error"));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.user = decoded; // store user info for later
+    next();
+  } catch (err) {
+    next(new Error("Authentication error"));
+  }
+});
+
+require("./socket.io/connection")(io); 
 
 sequelize.sync().then(() => {
-  app.listen(5000, () => console.log("Server running on port 5000"));
+  server.listen(5000, () => console.log("Server running on port 5000"));
 });
