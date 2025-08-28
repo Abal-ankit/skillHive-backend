@@ -6,6 +6,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const { sequelize } = require("./models");
 const jwt = require('jsonwebtoken');
+const handleError = require("./middlewares/errorHandler");
 
 app.use(express.json());
 app.use(cors());
@@ -14,6 +15,7 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/user", require("./routes/user"));
 app.use("/api/challenges", require("./routes/challenges"));
 
+app.use(handleError);
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -25,7 +27,6 @@ const io = new Server(server, {
 
 
 io.use((socket, next) => {
-  console.log("Hi");
   const token = socket.handshake.auth.token;
 
   if (!token) {
