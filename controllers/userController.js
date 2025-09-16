@@ -2,19 +2,32 @@ const { User } = require("../models");
 const Follow = require("../models/Follow");
 
 const getUserProfile = async (req, res, next) => {
-  
   try {
     const { userId } = req.user;
     const user = await User.findByPk(userId, {
       attributes: ["id", "name", "email", "createdAt"], // adjust fields as needed
     });
-
+    
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
 
-    res.json(user);
-  } catch (err) {
+    const followerList = await Follow.findAll({
+      where : {
+        following_id : user.id
+      },
+      attributes : ["follower_id"]
+    });
+
+    const followingList = await Follow.findAll({
+      where : {
+        follower_id : user.id
+      },
+      attributes : ["following_id"]
+    });
+
+    res.json({user, followerList, followingList});
+  } catch (error) {
     error.location = "getUserProfile Controller";
     next(error);
   }
@@ -23,12 +36,26 @@ const getUserProfile = async (req, res, next) => {
 const getProfileByUserName = async (req, res, next) => {
   try {
     const { userName } = req.params;
-    console.log(userName);
+    
     const result = await User.findOne({
       where: { userName: userName },
-      attributes: ["name", "email", "createdAt"],
+      attributes: ["name", "email", "id", "createdAt"],
     });
 
+    const followingCnt = await Follow.count({
+      where : {
+        "follower_id" : result.id,
+      }
+    });
+
+    const followerCnt = await Follow.count({
+      where : {
+        "following_id" : result.id
+      }
+    });
+
+    result.dataValues.followers = followerCnt;
+    result.dataValues.following = followingCnt;
 
     res.status(200).json(result);
   } catch (error) {

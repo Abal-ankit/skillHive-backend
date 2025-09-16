@@ -2,10 +2,10 @@ const {Challenge} = require('../models');
 const runUserCode = require("../utility/codeRunEnvironment.js");
 const {score, matches} = require("../config/store.js");
 
-const challenge = async (req, res) => {
+const challenge = async (req, res, next) => {
    
    try {
-      const { code, testCases, playerId } = req.body;
+      const { code, testCases } = req.body;
       const result = runUserCode(code, testCases);
    
       if(result.status === "error")
@@ -16,12 +16,7 @@ const challenge = async (req, res) => {
             return res.json({status : "failed", message : "Some testCases are failing"});
          }
       }
-   
-      let yourScore = (score.get(playerId) || 0) + 1;
-      score.set(playerId, yourScore);
-   
-   
-      console.log(playerId, yourScore);
+      
       res.json({status : "success", message : "Congratulation! Test cases passed"});
       
    } catch (error) {
@@ -30,7 +25,7 @@ const challenge = async (req, res) => {
    }
 }
 
-const getQuestionsList = async (req, res) => {
+const getQuestionsList = async (req, res, next) => {
    try {
       const {limit, offset} = req.body;
       const result = await Challenge.findAll({offset, limit});

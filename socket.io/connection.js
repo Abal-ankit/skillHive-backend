@@ -1,94 +1,79 @@
 const { Challenge } = require("../models");
-const {matches, score, users} = require("../config/store.js");
+const {users} = require("../config/store.js");
+const handleJoinRoom = require("./joinRoomhandler.js");
+const handleStartGame = require("./startGameHandler.js");
+const handleCreateRoom = require("./createRoomHandler.js");
+const handleLeaveRoom = require("./leaveRoomHandler.js");
+const handleFindMatch = require("./findMatchHandler.js")
+const handleSuccessfulSubmit = require("./successfulSubmitHandler.js");
 
-let waitingUsers = [];
+let waitingRooms = [];
 let challenges = [];
+
+const loadChallenges = async () => {
+  if(challenges.length > 0)
+    return;
+
+  challenges = await Challenge.findAll();
+}
 
 const connection = (io) => {
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
+
+    // Loading the challenges from the db
+    loadChallenges();
+
     // console.log(socket.user.userName);
-    users.set(socket.id, socket.user.userName);
+    users.set(socket.user.userId, {"socketId" : socket.id, "userName" : socket.user.userName});
 
     // When a user looks for a match
     socket.on("find_match", async () => {
-      console.log(waitingUsers.length);
-      if (waitingUsers.length > 0) {
-        const partnerSocket = waitingUsers.shift();
-
-        // Prevent matching with self if only one is waiting
-        if (partnerSocket.id === socket.id && waitingUsers.length === 0) {
-          io.to(socket.id).emit("match_found", { partnerId: "Not found" });
-          waitingUsers.push(socket);
-          return;
-        }
-
-        // Store matched pair
-        matches.push({ first: partnerSocket.id, second: socket.id });
-        // Load challenges from DB once
-        challenges = await Challenge.findAll();
-
-        // Send first challenge to both
-        io.to(socket.id).emit("match_found", {
-          partnerId: partnerSocket.id,
-          partnerName : users.get(partnerSocket.id),
-          challenges: challenges[0],
-          currentIndex: 0,
-        });
-
-        io.to(partnerSocket.id).emit("match_found", {
-          partnerId: socket.id,
-          partnerName : users.get(socket.id),
-          challenges: challenges[0],
-          currentIndex: 0,
-        });
-      } else {
-        waitingUsers.push(socket);
-      }
+      handleFindMatch(io, socket, waitingRooms);
     });
 
     // When user successfully submits
-    socket.on("successful_submit", ({ questionIndex, opponentId }) => {
-      if (questionIndex >= challenges.length - 1) {
-        // End of challenges
-        io.to(socket.id).emit("challenge_over", {
-          message: "You have run out of challenges",
-        });
-        io.to(opponentId).emit("challenge_over", {
-          message: "You have run out of challenges",
-        });
-        return;
-      }
+    socket.on("successful_submit", ({ questionIndex, roomIdentity }) => {
+      handleSuccessfulSubmit(
+        io,
+        socket,
+        questionIndex,
+        roomIdentity,
+        challenges
+      );
+    });
 
-      // Send next challenge
-      const nextIndex = questionIndex + 1;
-      const nextChallenge = challenges[nextIndex];
+    /**
+     * Create a room
+     */
+    socket.on("createRoom", ({roomIdentity, opponentId}) => {
+      handleCreateRoom(io, socket, roomIdentity, opponentId);
+    });
 
-      io.to(socket.id).emit("next_challenge", {
-        nextChallenge,
-        currentIndex: nextIndex,
-      });
+    /**
+     * User joins a room 
+     * */ 
+    socket.on("joinRoom", ({roomIdentity}) => {
+      handleJoinRoom(io, socket, roomIdentity);
+    });
 
-      io.to(opponentId).emit("next_challenge", {
-        nextChallenge,
-        currentIndex: nextIndex,
-      });
+    /**
+     * User leaves a room
+     */
+    socket.on("leaveRoom", ({roomIdentity}) => {
+      handleLeaveRoom(socket, roomIdentity);
+    });
 
-      // send update score
-      io.to(socket.id).emit("update_score", {
-        yourScore : score.get(socket.id) || 0,
-        opponentScore : score.get(opponentId) || 0,
-      });
-
-      io.to(opponentId).emit("update_score", {
-        yourScore : score.get(opponentId) || 0,
-        opponentScore : score.get(socket.id) || 0,
-      });
+    /**
+     * Start the game
+     */
+    socket.on("startGame", ({roomIdentity}) => {
+      handleStartGame(io, roomIdentity, challenges);
     });
 
     socket.on("disconnect", () => {
       console.log("Disconnected:", socket.id);
-      waitingUsers = waitingUsers.filter((s) => s.id !== socket.id);
+      // waitingUsers = waitingUsers.filter((s) => s.id !== socket.id);
     });
   });
 };

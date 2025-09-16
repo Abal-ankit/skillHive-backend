@@ -1,5 +1,9 @@
-const score = new Map();
+const match_details = new Map();
 let matches = [];
+/**
+ * Maps a socket to the user in database
+ * FORMAT => {socket.id => userName}
+ */
 const users = new Map();
 
-module.exports = {score, matches, users};
+module.exports = { match_details, matches, users };
