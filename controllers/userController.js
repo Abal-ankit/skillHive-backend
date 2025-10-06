@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const { User } = require("../models");
 const Follow = require("../models/Follow");
 
@@ -12,21 +13,22 @@ const getUserProfile = async (req, res, next) => {
       return res.status(404).json({ error: "User not found." });
     }
 
-    const followerList = await Follow.findAll({
-      where : {
-        following_id : user.id
+    const followingCnt = await Follow.count({
+      where: {
+        follower_id: userId,
       },
-      attributes : ["follower_id"]
     });
 
-    const followingList = await Follow.findAll({
-      where : {
-        follower_id : user.id
+    const followerCnt = await Follow.count({
+      where: {
+        following_id: userId,
       },
-      attributes : ["following_id"]
     });
 
-    res.json({user, followerList, followingList});
+    user.dataValues.followers = followerCnt;
+    user.dataValues.followings = followingCnt;
+
+    res.json(user);
   } catch (error) {
     error.location = "getUserProfile Controller";
     next(error);
@@ -55,7 +57,43 @@ const getProfileByUserName = async (req, res, next) => {
     });
 
     result.dataValues.followers = followerCnt;
-    result.dataValues.following = followingCnt;
+    result.dataValues.followings = followingCnt;
+    result.dataValues.canFollow = false;
+    result.dataValues.isFollowing = false;
+
+    // console.log("user: ", req.user);
+    if(req?.user) {
+      const {userId} = req.user;
+
+      // same person
+      if(userId === result.id) {
+        return res.status(200).json(result);
+      }
+
+      // is follower
+      const isFollower = await Follow.count({
+        where : {
+          "follower_id" : userId,
+          "following_id" : result.id
+        }
+      });
+
+      if(isFollower == 0) {
+        result.dataValues.canFollow = true;
+      }
+
+      // is following
+      const isFollowing = await Follow.count({
+        where : {
+          "following_id" : userId,
+          "follower_id" : result.id,
+        }
+      });
+
+      if(isFollowing != 0) {
+        result.dataValues.isFollowing = true;
+      }
+    }
 
     res.status(200).json(result);
   } catch (error) {
@@ -83,8 +121,10 @@ const followUser = async (req, res, next) => {
       }
     });
 
+
     if(relationship) {
-      throw new Error(`You already followed the ${user.username}`)
+      throw new Error(`You already followed the ${user.dataValues.userName}`)
+      // res.status(500).json({"Message" : "You already follow"});
     }
 
     const result = await Follow.create({follower_id, following_id});
@@ -98,16 +138,27 @@ const followUser = async (req, res, next) => {
 
 const getFollower = async (req, res, next) => {
   try {
-    const {userId} = req.user;
-    console.log(userId)
+    const {id : userId} = req.params;
+    // console.log("Id: ", userId);
+
     const result = await Follow.findAll({
       where : {
         following_id : userId,
       },
-      attributes : ["follower_id"]
+      attributes : ["follower_id"],
+      raw : true
     });
 
-    res.status(200).json(result);
+    const followerData = await User.findAll({
+      where: {
+        "id" : [...result.map(temp => temp.follower_id)],
+      },
+      attributes : ["id", "name", "userName"]
+    });
+
+    console.log(JSON.stringify(followerData));
+    
+    res.status(200).json(followerData);
   } catch (error) {
     error.location = "getFollower Controller";
     next(error);
@@ -116,7 +167,7 @@ const getFollower = async (req, res, next) => {
 
 const getFollowing = async (req, res, next) => {
   try {
-    const {userId : follower_id} = req.user;
+    const {id : follower_id} = req.params;
 
     const result = await Follow.findAll({
       where : {
@@ -125,10 +176,45 @@ const getFollowing = async (req, res, next) => {
       attributes : ["following_id"]
     });
 
-    res.status(200).json(result);
+    const followingData = await User.findAll({
+      where: {
+        id : [...result.map(temp => temp.following_id)]
+      },
+      attributes : ["id", "name", "userName"],
+      raw : true
+    })
+
+    console.log(followingData)
+    res.status(200).json(followingData);
 
   } catch (error) {
     error.location = "getFollowing Controller"
+    next(error);
+  }
+}
+
+const getSearchResults = async (req, res, next) => {
+  try {
+    const {query} = req.body;
+
+    if(!query) {
+      return res.status(200).json([]);
+    }
+
+    const result = await User.findAll({
+      where : {
+        userName : {
+          [Op.like] : `%${query}%`
+        }
+      },
+
+      attributes : ["userName", "id", "name"],
+      raw : true
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    error.location = "getSearchResults Controller";
     next(error);
   }
 }
@@ -139,4 +225,5 @@ module.exports = {
   followUser,
   getFollower,
   getFollowing,
+  getSearchResults,
 };

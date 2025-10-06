@@ -6,6 +6,7 @@ const handleCreateRoom = require("./createRoomHandler.js");
 const handleLeaveRoom = require("./leaveRoomHandler.js");
 const handleFindMatch = require("./findMatchHandler.js")
 const handleSuccessfulSubmit = require("./successfulSubmitHandler.js");
+const canChallenge = require("../middlewares/socketMiddlewares/canChallenge.js");
 
 let waitingRooms = [];
 let challenges = [];
@@ -47,7 +48,7 @@ const connection = (io) => {
      * Create a room
      */
     socket.on("createRoom", ({roomIdentity, opponentId}) => {
-      handleCreateRoom(io, socket, roomIdentity, opponentId);
+      canChallenge(io, socket, roomIdentity, opponentId, handleCreateRoom);
     });
 
     /**
@@ -71,10 +72,23 @@ const connection = (io) => {
       handleStartGame(io, roomIdentity, challenges);
     });
 
-    socket.on("disconnect", () => {
-      console.log("Disconnected:", socket.id);
-      // waitingUsers = waitingUsers.filter((s) => s.id !== socket.id);
+    socket.on("disconnecting", () => {
+      console.log("Disconnecting:", socket.id);
+
+      if (!socket.user || !users.has(socket.user.userId)) return;
+
+      const { userName } = users.get(socket.user.userId);
+      users.delete(socket.user.userId);
+
+      for (const room of socket.rooms) {
+        if (room !== socket.id) {
+          io.to(room).emit("Message", {
+            message: `${userName} has left the room`,
+          });
+        }
+      }
     });
+
   });
 };
 

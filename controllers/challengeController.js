@@ -1,9 +1,9 @@
 const {Challenge} = require('../models');
 const runUserCode = require("../utility/codeRunEnvironment.js");
 const {score, matches} = require("../config/store.js");
+const runCodeInDocker = require('../utility/dockerRunEnvironment.js');
 
 const challenge = async (req, res, next) => {
-   
    try {
       const { code, testCases } = req.body;
       const result = runUserCode(code, testCases);
@@ -25,11 +25,28 @@ const challenge = async (req, res, next) => {
    }
 }
 
+const dockerRun = async (req, res, next) => {
+  try {
+   //  console.log(req.body);
+    const language = "python";
+    const code = `print(20 + 10)`;
+
+    const result = await runCodeInDocker(language, code);
+      console.log(result);
+    res.status(200).json({ output: result });
+  } catch (error) {
+    error.location = "dockerRun Controller";
+    next(error);
+  }
+};
+
+
 const getQuestionsList = async (req, res, next) => {
    try {
       const {limit, offset} = req.body;
+
       const result = await Challenge.findAll({offset, limit});
-      
+
       return res.status(200).json({result, limit, offset : offset + 3});
    } catch (error) {
       error.location = "getQuestionsList Controller";
@@ -37,4 +54,22 @@ const getQuestionsList = async (req, res, next) => {
    }
 }
 
-module.exports = { challenge, getQuestionsList };
+const getQuestionById = async (req, res, next) => {
+   try {
+      const {id} = req.params;
+
+      const result = await Challenge.findByPk(id);
+      if (!result) {
+         res.status(404).json({"message" : "Question not found"});
+         return;
+      }
+
+      res.status(200).json(result.dataValues);
+
+   } catch (error) {
+      error.location = "getQuestionById Controller";
+      next(error);
+   }
+}
+
+module.exports = { challenge, getQuestionsList, dockerRun, getQuestionById };
