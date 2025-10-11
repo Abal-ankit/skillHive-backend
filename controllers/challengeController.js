@@ -1,75 +1,90 @@
-const {Challenge} = require('../models');
+const { Challenge } = require("../models");
 const runUserCode = require("../utility/codeRunEnvironment.js");
-const {score, matches} = require("../config/store.js");
-const runCodeInDocker = require('../utility/dockerRunEnvironment.js');
+const { score, matches } = require("../config/store.js");
+const runCodeInDocker = require("../utility/dockerRunEnvironment.js");
+const questionModel = require("../models/mongodbModels/Question.js");
+const fs = require('fs');
+const path = require('path');
 
 const challenge = async (req, res, next) => {
-   try {
-      const { code, testCases } = req.body;
-      const result = runUserCode(code, testCases);
-   
-      if(result.status === "error")
-         return res.json(result);
-   
-      for(let a of result.results) {
-         if(a.passed === false) {
-            return res.json({status : "failed", message : "Some testCases are failing"});
-         }
-      }
-      
-      res.json({status : "success", message : "Congratulation! Test cases passed"});
-      
-   } catch (error) {
-      error.location = "challenge Controller";
-      next(error);
-   }
-}
+  try {
+    const { code, testCases } = req.body;
+    const result = runUserCode(code, testCases);
 
+    if (result.status === "error") return res.json(result);
+
+    for (let a of result.results) {
+      if (a.passed === false) {
+        return res.json({
+          status: "failed",
+          message: "Some testCases are failing",
+        });
+      }
+    }
+
+    res.json({
+      status: "success",
+      message: "Congratulation! Test cases passed",
+    });
+  } catch (error) {
+    error.location = "challenge Controller";
+    next(error);
+  }
+};
+
+// pending work
 const dockerRun = async (req, res, next) => {
   try {
-   //  console.log(req.body);
-    const language = "python";
-    const code = `print(20 + 10)`;
-
+    const {language, code} = req.body;
+    
     const result = await runCodeInDocker(language, code);
-      console.log(result);
-    res.status(200).json({ output: result });
+
+    try {
+      const filePath = path.join(__dirname, '../', 'result.txt');
+
+      const data = fs.readFileSync(filePath, "utf8");
+      console.log("File content:", data);
+      res.status(200).send(data);
+      
+    } catch (err) {
+      console.error("Error reading file synchronously:", err);
+      res.status(400).send("Problem occured");
+    }
+
   } catch (error) {
     error.location = "dockerRun Controller";
     next(error);
   }
 };
 
-
 const getQuestionsList = async (req, res, next) => {
-   try {
-      const {limit, offset} = req.body;
+  try {
+    const { limit, offset } = req.body;
 
-      const result = await Challenge.findAll({offset, limit});
+    const result = await questionModel.find({}).skip(offset).limit(limit);
 
-      return res.status(200).json({result, limit, offset : offset + 3});
-   } catch (error) {
-      error.location = "getQuestionsList Controller";
-      next(error);
-   }
-}
+    return res.status(200).json({ result, limit, offset: offset + 3 });
+  } catch (error) {
+    error.location = "getQuestionsList Controller";
+    next(error);
+  }
+};
 
 const getQuestionById = async (req, res, next) => {
-   try {
-      const {id} = req.params;
+  try {
+    const { id } = req.params;
 
-      const result = await Challenge.findByPk(id);
-      if (!result) {
-         res.status(404).json({"message" : "Question not found"});
-         return;
-      }
+    const result = await questionModel.findOne({ _id: id });
+    if (!result) {
+      res.status(404).json({ message: "Question not found" });
+      return;
+    }
 
-      res.status(200).json(result.dataValues);
-
-   } catch (error) {
-      error.location = "getQuestionById Controller";
-      next(error);
-   }
-}
+    res.status(200).json(result);
+  } catch (error) {
+    error.location = "getQuestionById Controller";
+    next(error);
+  }
+};
 
 module.exports = { challenge, getQuestionsList, dockerRun, getQuestionById };

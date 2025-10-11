@@ -8,6 +8,9 @@ const {
   getQuestionById,
 } = require("../controllers/challengeController");
 
+/**
+ * API /api/challenges
+ */
 router.post("/run", verifyToken, challenge);
 router.post("/questions", getQuestionsList);
 router.get("/question/:id", getQuestionById);

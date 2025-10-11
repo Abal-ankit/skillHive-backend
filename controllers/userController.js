@@ -6,7 +6,7 @@ const getUserProfile = async (req, res, next) => {
   try {
     const { userId } = req.user;
     const user = await User.findByPk(userId, {
-      attributes: ["id", "name", "email", "createdAt"], // adjust fields as needed
+      attributes: ["id","userName",  "name", "email", "createdAt"], // adjust fields as needed
     });
     
     if (!user) {
@@ -41,7 +41,7 @@ const getProfileByUserName = async (req, res, next) => {
     
     const result = await User.findOne({
       where: { userName: userName },
-      attributes: ["name", "email", "id", "createdAt"],
+      attributes: ["name","userName", "email", "id", "createdAt"],
     });
 
     const followingCnt = await Follow.count({
