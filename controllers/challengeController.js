@@ -1,5 +1,6 @@
 const { Challenge } = require("../models");
 const runUserCode = require("../utility/codeRunEnvironment.js");
+const recordSubmission = require("../utility/recordSubmission.js");
 const { score, matches } = require("../config/store.js");
 const runCodeInDocker = require("../utility/dockerRunEnvironment.js");
 const questionModel = require("../mongodbModels/Question.js");
@@ -69,10 +70,13 @@ const dockerRun = async (req, res, next) => {
 
     const result = await runCodeInDocker(language);
 
+    
     try {
       const filePath = path.join(__dirname, "../", "result.txt");
-
+      
       const data = fs.readFileSync(filePath, "utf8");
+      recordSubmission(req, data);
+
       res.status(200).send(data);
     } catch (err) {
       console.error("Error reading file synchronously:", err);

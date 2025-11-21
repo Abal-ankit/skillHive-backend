@@ -7,7 +7,7 @@ const upload = require("../multerConfig");
 /**
  * API /api/auth/
  */
-router.post("/register", authController.register);
+router.post("/register", upload.single("profilePic"), authController.register);
 router.post("/login", authController.login);
 router.get("/profile", verifyToken, authController.getProfile);
 router.post(

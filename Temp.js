@@ -1,4 +1,4 @@
-function twoSum(arr, target) {return [-1];}
+function twoSum(arr, target) {return true}
 
 const fs = require('fs');
 const input = fs.readFileSync('input.txt', 'utf8').trim().split('\n');

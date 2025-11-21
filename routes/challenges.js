@@ -14,6 +14,6 @@ const {
 router.post("/run", verifyToken, challenge);
 router.post("/questions", getQuestionsList);
 router.get("/question/:id", getQuestionById);
-router.post("/dockerrun", dockerRun);
+router.post("/dockerrun", verifyToken, dockerRun);
 
 module.exports = router;

@@ -7,7 +7,12 @@ const register = async (req, res, next) => {
   try {
     const { userName, name, email, password } = req.body;
     const hash = await bcrypt.hash(password, 10);
-    const user = await User.create({ userName, name, email, password: hash });
+
+    const profilePic = null;
+    if(req.file) {
+      profilePic = req.file.path;
+    }
+    const user = await User.create({ userName, name, email, password: hash, profilePic});
     res.status(201).json({ message: "User registered", user });
   } catch (error) {
     error.location = "register Controller";
