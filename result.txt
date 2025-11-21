@@ -1,1 +1,2 @@
-30
+Output matched
+Wrong answer

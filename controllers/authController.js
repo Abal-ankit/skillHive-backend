@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { User } = require('../models/index');
+const cloudinary = require("../cloudinary");
 
 const register = async (req, res, next) => {
   try {
@@ -25,7 +26,8 @@ const login = async (req, res, next) => {
 
     const token = jwt.sign(
       { userId: user.id, userName: user.name },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET, 
+      {expiresIn : "15m"}
     );
     res.status(200).json({ token, user });
   } catch (error) {
@@ -47,4 +49,27 @@ const getProfile = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, getProfile };
+const updateProfile = async (req, res, next) => {
+  try {
+    console.log(req.user);
+
+    const {userId} = req.user;
+
+    const updatedData = req.body;
+    if(req.file) {
+      updatedData.profilePic = req.file.path;
+    }
+
+    console.log(updatedData);
+    await User.update(updatedData, {where : {id : userId}});
+    const result = await User.findByPk(userId);
+    console.log(result);
+
+    res.json(result);
+  } catch (error) {
+    error.location = "getProfile Controller";
+    next(error);
+  }
+}
+
+module.exports = { register, login, getProfile, updateProfile };

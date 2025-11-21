@@ -1,35 +1,43 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+"use strict";
 
-const User = sequelize.define('User', {
-    userName : {
-        type : DataTypes.STRING,
-        allowNull : true,
-        unique : true
+module.exports = (sequelize, DataTypes) => {
+  const User = sequelize.define("User", {
+    userName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
     },
-
-    name : {
-        type : DataTypes.STRING,
-        allowNull : false
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
-
-    email : {
-        type : DataTypes.STRING,
-        allowNull : false,
-        unique : true
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
     },
-    password : {
-        type : DataTypes.STRING,
-        allowNull : false
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false,
     },
-    rank : {
-        type : DataTypes.STRING,
-        defaultValue : 'Begineer'
+    rank: {
+      type: DataTypes.STRING,
+      defaultValue: "Beginner",
     },
-    points : {
-        type : DataTypes.INTEGER,
-        defaultValue : 0
+    points: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    profilePic: {
+      type: DataTypes.STRING,
+      allowNull:true
     }
-});
+  });
 
-module.exports = User;
+  // 🔹 Define future associations here if needed
+  // User.associate = (models) => {
+  //   models.User.hasMany(models.Match);
+  // };
+
+  return User;
+};

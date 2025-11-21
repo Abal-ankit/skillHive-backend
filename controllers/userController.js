@@ -1,6 +1,5 @@
 const { Op } = require("sequelize");
-const { User } = require("../models");
-const Follow = require("../models/Follow");
+const { User, Follow } = require("../models");
 
 const getUserProfile = async (req, res, next) => {
   try {
@@ -61,7 +60,6 @@ const getProfileByUserName = async (req, res, next) => {
     result.dataValues.canFollow = false;
     result.dataValues.isFollowing = false;
 
-    // console.log("user: ", req.user);
     if(req?.user) {
       const {userId} = req.user;
 

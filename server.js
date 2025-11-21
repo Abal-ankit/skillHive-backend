@@ -4,9 +4,10 @@ require("dotenv").config();
 const app = express();
 const http = require('http');
 const { Server } = require('socket.io');
-const { sequelize } = require("./models");
+// const { sequelize } = require("./models");
 const jwt = require('jsonwebtoken');
 const handleError = require("./middlewares/errorHandler");
+const sequelize = require("./config/db");
 
 app.use(express.json());
 app.use(cors());
@@ -45,6 +46,6 @@ io.use((socket, next) => {
 
 require("./socket.io/connection")(io); 
 
-sequelize.sync().then(() => {
-  server.listen(5000, () => console.log("Server running on port 5000"));
+server.listen(5000, () => {
+  console.log("Server running on port 5000");
 });

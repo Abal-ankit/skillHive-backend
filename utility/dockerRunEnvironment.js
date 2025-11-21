@@ -1,45 +1,19 @@
 const { exec } = require("child_process");
 const fs = require("fs");
-const codeInject = require("./codeInjections");
 
-const runCodeInDocker = async (language, code) => {
-  const originalCode = `#include<bits/stdc++.h>
-using namespace std;
-
-// {{ADD_FUNCTION}}
-
-int main() {
-   int a = 10, b = 20;
-
-   ofstream file("/home/result.txt");
-   
-   if(!file.is_open()) {
-    cerr << "Error: Unable to open file!" << endl;
-    return 1;
-  }
-  
-  file << add(a, b);
-
-    file.close();
-   return 0;
-}`;
-  code = codeInject(originalCode, code);
-  fs.writeFileSync(`Temp.${language}`, code);
-
+const runCodeInDocker = async (language) => {
   return new Promise((resolve, reject) => {
     exec(
-      `bash ./bash/${language}.sh Temp.${language}`,
+      `bash ./bash/${language}.sh Temp.${language} input.txt output.txt`,
       (error, stdout, stderr) => {
         if (error) {
-          console.log("Error occured in promise: ", error.message);
-          return reject(`Error: ${error.message}`);
+          console.log("Error occured in in Bash execution: ", error.message);
+          return reject({"message": error.message});
         }
         if (stderr) {
-          console.log("Error occured in promise: ", stderr);
-          return reject(`stderr: ${stderr}`);
+          return reject({ "message": stderr });
         }
-        console.log("Happiness occured in promise: ", stdout);
-        return resolve(stdout);
+        return resolve({"message": stdout });
       }
     );
   });

@@ -1,4 +1,4 @@
-const questionModel = require("../../models/mongodbModels/Question");
+const questionModel = require("../../mongodbModels/Question");
 
 
 const addQuestion = async (request, response, next) => {

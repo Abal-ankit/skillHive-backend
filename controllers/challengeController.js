@@ -2,9 +2,10 @@ const { Challenge } = require("../models");
 const runUserCode = require("../utility/codeRunEnvironment.js");
 const { score, matches } = require("../config/store.js");
 const runCodeInDocker = require("../utility/dockerRunEnvironment.js");
-const questionModel = require("../models/mongodbModels/Question.js");
-const fs = require('fs');
-const path = require('path');
+const questionModel = require("../mongodbModels/Question.js");
+const codeInject = require("../utility/codeInjections.js");
+const fs = require("fs");
+const path = require("path");
 
 const challenge = async (req, res, next) => {
   try {
@@ -35,23 +36,50 @@ const challenge = async (req, res, next) => {
 // pending work
 const dockerRun = async (req, res, next) => {
   try {
-    const {language, code} = req.body;
+    const { questionId, language, code } = req.body;
+
+    const questionInfo = await questionModel.findById(questionId);
+
+    const testCases = questionInfo.testcase;
+    const output = questionInfo.output;
+
+    completeCode = codeInject(questionInfo.wholeCode[language], code);
+
+    fs.writeFileSync(`Temp.${language}`, completeCode);
+
+    fs.unlinkSync("input.txt");
+    fs.unlinkSync("output.txt")
     
-    const result = await runCodeInDocker(language, code);
+    testCases.map(testcase => fs.appendFileSync("input.txt", `${testcase}\n`, 'utf-8', (err) => {
+      if(err) {
+        throw err;
+      }
+
+      console.log("Write successful");
+    }));
+
+
+    output.map(data => fs.appendFileSync("output.txt", `${data}\n`, 'utf-8', (error) => {
+      if(error) {
+        throw error;
+      }
+
+      console.log("Write successful");
+    }))
+
+    const result = await runCodeInDocker(language);
 
     try {
-      const filePath = path.join(__dirname, '../', 'result.txt');
+      const filePath = path.join(__dirname, "../", "result.txt");
 
       const data = fs.readFileSync(filePath, "utf8");
-      console.log("File content:", data);
       res.status(200).send(data);
-      
     } catch (err) {
       console.error("Error reading file synchronously:", err);
       res.status(400).send("Problem occured");
     }
-
   } catch (error) {
+    console.log("Problem occured at dockerRun Controller");
     error.location = "dockerRun Controller";
     next(error);
   }

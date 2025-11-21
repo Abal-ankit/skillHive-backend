@@ -1,20 +1,66 @@
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
 using namespace std;
 
-int add(int a, int b) {return a + b;}
+vector<int> twoSum(vector<int> &arr, int target) {
+    unordered_map<int, int> mp;
 
-int main() {
-   int a = 10, b = 20;
+    for (int i = 0; i < arr.size(); i++) {
+        if (mp.count(target - arr[i])) {
+            return {mp[target - arr[i]], i};
+        }
+        mp[arr[i]] = i;
+    }
 
-   ofstream file("/home/result.txt");
-   
-   if(!file.is_open()) {
-    cerr << "Error: Unable to open file!" << endl;
-    return 1;
-  }
-  
-  file << add(a, b);
+    return {-1};
+}
 
-    file.close();
-   return 0;
+int main()
+{
+    ifstream input("input.txt"), output("output.txt");
+    ofstream result("result.txt");
+
+    int t;
+    input >> t;
+
+    input.ignore();
+
+    while (t--)
+    {
+        string s;
+        getline(input, s);
+
+        istringstream str(s);
+        string a;
+
+        vector<int> arr;
+        while (getline(str, a, ','))
+        {
+            arr.push_back(stoi(a));
+        }
+
+        int target;
+
+        input >> target;
+        input.ignore();
+
+        vector<int> ans = twoSum(arr, target);
+
+        string o;
+        getline(output, o);
+
+        istringstream st(o);
+        string k;
+
+        vector<int> z;
+        while(getline(st, k, ',')) {
+            z.push_back(stoi(k));
+        }
+
+        if(z == ans) {
+            result << "Output matched\n";
+        }
+        else {
+            result << "Wrong answer\n";
+        }
+    }
 }

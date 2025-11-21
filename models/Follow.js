@@ -1,16 +1,15 @@
-const sequelize = require("../config/db");
-const { DataTypes } = require("sequelize");
-
-const Follow = sequelize.define('Follow', {
-    following_id : {
-        type : DataTypes.BIGINT,
-        allowNull : false
+// models/follow.js
+module.exports = (sequelize, DataTypes) => {
+  const Follow = sequelize.define("Follow", {
+    following_id: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
     },
+    follower_id: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+    },
+  });
 
-    follower_id : {
-        type : DataTypes.BIGINT,
-        allowNull : false
-    }
-});
-
-module.exports = Follow;
+  return Follow;
+};
