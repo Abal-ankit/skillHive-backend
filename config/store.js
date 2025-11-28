@@ -1,4 +1,6 @@
 const match_details = new Map();
+const games = new Map();
+
 let matches = [];
 /**
  * Maps a socket to the user in database
@@ -6,4 +8,4 @@ let matches = [];
  */
 const users = new Map();
 
-module.exports = { match_details, matches, users };
+module.exports = { match_details, matches, users, games };

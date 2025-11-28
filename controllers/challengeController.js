@@ -7,6 +7,8 @@ const questionModel = require("../mongodbModels/Question.js");
 const codeInject = require("../utility/codeInjections.js");
 const fs = require("fs");
 const path = require("path");
+const fetchQuestionStatus = require("../utility/fetchQuestionStatus.js");
+const {Submission} = require("../models/index.js");
 
 const challenge = async (req, res, next) => {
   try {
@@ -48,8 +50,8 @@ const dockerRun = async (req, res, next) => {
 
     fs.writeFileSync(`Temp.${language}`, completeCode);
 
-    fs.unlinkSync("input.txt");
-    fs.unlinkSync("output.txt")
+    await fs.promises.rm("input.txt", {force : true});
+    await fs.promises.rm("output.txt", { force: true });
     
     testCases.map(testcase => fs.appendFileSync("input.txt", `${testcase}\n`, 'utf-8', (err) => {
       if(err) {
@@ -68,16 +70,16 @@ const dockerRun = async (req, res, next) => {
       console.log("Write successful");
     }))
 
-    const result = await runCodeInDocker(language);
+    await runCodeInDocker(language);
 
     
     try {
       const filePath = path.join(__dirname, "../", "result.txt");
       
       const data = fs.readFileSync(filePath, "utf8");
-      recordSubmission(req, data);
+      const status = await recordSubmission(req, data);
 
-      res.status(200).send(data);
+      res.status(200).json({status, message : data});
     } catch (err) {
       console.error("Error reading file synchronously:", err);
       res.status(400).send("Problem occured");
@@ -86,6 +88,14 @@ const dockerRun = async (req, res, next) => {
     console.log("Problem occured at dockerRun Controller");
     error.location = "dockerRun Controller";
     next(error);
+  } finally {
+    fs.promises.rm("input.txt", {force : true});
+    fs.promises.rm("output.txt", {force : true});
+    fs.promises.rm("Temp.js", {force : true});
+    fs.promises.rm("Temp.cpp", {force : true});
+    fs.promises.rm("Temp.java", {force : true});
+    fs.promises.rm("Temp.class", {force : true});
+    fs.promises.rm("result.txt", {force : true});
   }
 };
 
@@ -93,7 +103,16 @@ const getQuestionsList = async (req, res, next) => {
   try {
     const { limit, offset } = req.body;
 
-    const result = await questionModel.find({}).skip(offset).limit(limit);
+    const result = await questionModel.find({}).skip(offset).limit(limit).lean();
+
+    const questionIds = result.map(r => r._id.toString());
+    if(req?.user?.userId) {
+      const statuses = await fetchQuestionStatus(questionIds, req.user.userId);
+      for(let i = 0; i < statuses.length; i++) {
+        result[i].status = statuses[i];
+      }
+    }
+
 
     return res.status(200).json({ result, limit, offset: offset + 3 });
   } catch (error) {
@@ -106,10 +125,17 @@ const getQuestionById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const result = await questionModel.findOne({ _id: id });
+    const result = await questionModel.findOne({ _id: id }).lean();
+
+    
     if (!result) {
       res.status(404).json({ message: "Question not found" });
       return;
+    }
+    
+    if(req?.user?.userId) {
+      const status = await fetchQuestionStatus([id], req.user.userId);
+      result["status"] = status[0];
     }
 
     res.status(200).json(result);
@@ -119,4 +145,33 @@ const getQuestionById = async (req, res, next) => {
   }
 };
 
-module.exports = { challenge, getQuestionsList, dockerRun, getQuestionById };
+const getAllSubmissionsByQuestionId = async (req, res, next) => {
+  try {
+    const { id: questionId } = req.params;
+    const {userId} = req.user;
+
+    const submissions = await Submission.findAll(
+      {
+        where : {
+          userId, questionId
+        },
+        attributes : ["id", "submissionStatus"],
+      },
+      {
+        raw : true
+      }
+    );
+
+    res.status(200).send(submissions);
+  } catch (error) {
+    error.location = "getAllSubmissionsByQuestionId Controller";
+    next(error);
+  }
+}
+module.exports = {
+  challenge,
+  getQuestionsList,
+  dockerRun,
+  getQuestionById,
+  getAllSubmissionsByQuestionId,
+};

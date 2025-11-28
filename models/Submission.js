@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      submissionStatus : {
+        type : DataTypes.STRING,
+        default : "attempted"
+      }
     },
     {
       tableName: "Submissions",

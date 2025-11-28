@@ -1,2 +1,0 @@
-Output matched
-Wrong answer

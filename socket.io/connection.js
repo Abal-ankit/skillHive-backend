@@ -1,5 +1,5 @@
-const { Challenge } = require("../models");
-const {users} = require("../config/store.js");
+const questionModel = require("../mongodbModels/Question.js");
+const {users, games, match_details} = require("../config/store.js");
 const handleJoinRoom = require("./joinRoomhandler.js");
 const handleStartGame = require("./startGameHandler.js");
 const handleCreateRoom = require("./createRoomHandler.js");
@@ -7,6 +7,7 @@ const handleLeaveRoom = require("./leaveRoomHandler.js");
 const handleFindMatch = require("./findMatchHandler.js")
 const handleSuccessfulSubmit = require("./successfulSubmitHandler.js");
 const canChallenge = require("../middlewares/socketMiddlewares/canChallenge.js");
+const canRejoinGame = require("../middlewares/socketMiddlewares/canRejoinGame.js");
 
 let waitingRooms = [];
 let challenges = [];
@@ -15,18 +16,57 @@ const loadChallenges = async () => {
   if(challenges.length > 0)
     return;
 
-  challenges = await Challenge.findAll();
+  challenges = await questionModel.find();
 }
 
 const connection = (io) => {
-  io.on("connection", (socket) => {
-    console.log("Client connected:", socket.id);
+  io.on("connection", async (socket) => {
+    console.log("Client connected: " +  socket.user.userName + " " + socket.id);
 
     // Loading the challenges from the db
     loadChallenges();
 
-    // console.log(socket.user.userName);
     users.set(socket.user.userId, {"socketId" : socket.id, "userName" : socket.user.userName});
+
+    /**
+     * Joining an existing game
+     */
+    const canRejoin = await canRejoinGame(io, socket.user.userId);
+    if (canRejoin === true) {
+      const gameId = games.get(socket.user.userId);
+
+      // get websocket room identity
+      const roomIdentity = io.sockets.adapter.rooms.get(gameId);
+      console.log("gameId in canRejoin: " + gameId);
+      // join to the room
+      socket.join(roomIdentity);
+      
+      const gameDetails = match_details.get(gameId);
+
+      console.log("gameDetails: ", gameDetails);
+      const { questionIndex, ...newScore } = gameDetails;
+
+      if (questionIndex > challenges.length - 1) {
+        // End of challenges
+        io.to(roomIdentity).emit("challenge_over", {
+          message: "You have run out of challenges",
+          score: newScore,
+        });
+
+        return;
+      }
+
+      const nextChallenge = challenges[questionIndex];
+      
+      // console.log("nextChallenge: ", nextChallenge);
+      io.to(socket.id).emit("next_challenge", {
+        nextChallenge,
+        currentIndex: questionIndex,
+        score: newScore,
+      });
+
+      console.log("next_challenge has been sent");
+    }
 
     // When a user looks for a match
     socket.on("find_match", async () => {
@@ -88,7 +128,6 @@ const connection = (io) => {
         }
       }
     });
-
   });
 };
 

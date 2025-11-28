@@ -2,7 +2,7 @@ const handleFindMatch = (io, socket, waitingRooms) => {
     if (waitingRooms.length > 0) {
       const room = waitingRooms.shift();
       socket.join(room);
-
+      console.log("Room id : " + room);
       io.to(room).emit("match_found", {
         roomId: room,
       });

@@ -2,7 +2,6 @@ const isValidUser = require("../middlewares/isValidUser.js");
 const {users} = require("../config/store.js");
 
 const handleCreateRoom = (io, socket, roomIdentity, opponentId) => {
-  console.log(roomIdentity, opponentId);
   const result = isValidUser(opponentId);
   if (!result) {
     io.to(socket.id).emit("createRoomFailed", {
