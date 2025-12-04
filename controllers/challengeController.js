@@ -168,10 +168,35 @@ const getAllSubmissionsByQuestionId = async (req, res, next) => {
     next(error);
   }
 }
+
+const getSubmissionById = async (req, res, next) => {
+  try {
+    const {id : submissionId} = req.params;
+  
+    const result = await Submission.findOne(
+      {
+        where: {
+          id: submissionId,
+        },
+        attributes: ["submittedCode", "language"],
+      },
+      {
+        raw: true,
+      }
+    );
+  
+    res.status(200).send(result);
+  } catch (error) {
+    error.location = "getSubmissionById Controller";
+    next(error);
+  }
+}
+
 module.exports = {
   challenge,
   getQuestionsList,
   dockerRun,
   getQuestionById,
   getAllSubmissionsByQuestionId,
+  getSubmissionById,
 };

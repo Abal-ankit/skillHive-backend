@@ -8,6 +8,7 @@ const {
   dockerRun,
   getQuestionById,
   getAllSubmissionsByQuestionId,
+  getSubmissionById,
 } = require("../controllers/challengeController");
 
 /**
@@ -18,5 +19,6 @@ router.post("/questions", optionalVerifyToken, getQuestionsList);
 router.get("/question/:id", optionalVerifyToken, getQuestionById);
 router.post("/dockerrun", verifyToken, dockerRun);
 router.get("/submissions/:id", verifyToken, getAllSubmissionsByQuestionId);
+router.get("/submissionId/:id", verifyToken, getSubmissionById)
 
 module.exports = router;

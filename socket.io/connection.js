@@ -31,15 +31,14 @@ const connection = (io) => {
     /**
      * Joining an existing game
      */
-    const canRejoin = await canRejoinGame(io, socket.user.userId);
+    const canRejoin = await canRejoinGame(socket.user.userId);
     if (canRejoin === true) {
       const gameId = games.get(socket.user.userId);
 
       // get websocket room identity
-      const roomIdentity = io.sockets.adapter.rooms.get(gameId);
       console.log("gameId in canRejoin: " + gameId);
       // join to the room
-      socket.join(roomIdentity);
+      socket.join(gameId);
       
       const gameDetails = match_details.get(gameId);
 
@@ -48,11 +47,13 @@ const connection = (io) => {
 
       if (questionIndex > challenges.length - 1) {
         // End of challenges
-        io.to(roomIdentity).emit("challenge_over", {
+        games.delete(socket.user.userId);
+        io.to(gameId).emit("challenge_over", {
           message: "You have run out of challenges",
           score: newScore,
         });
-
+        
+        io.socketsLeave(gameId);
         return;
       }
 
@@ -60,6 +61,7 @@ const connection = (io) => {
       
       // console.log("nextChallenge: ", nextChallenge);
       io.to(socket.id).emit("next_challenge", {
+        roomId : gameId,
         nextChallenge,
         currentIndex: questionIndex,
         score: newScore,
@@ -74,12 +76,11 @@ const connection = (io) => {
     });
 
     // When user successfully submits
-    socket.on("successful_submit", ({ questionIndex, roomIdentity }) => {
+    socket.on("successful_submit", ({ questionIndex }) => {
       handleSuccessfulSubmit(
         io,
         socket,
         questionIndex,
-        roomIdentity,
         challenges
       );
     });
@@ -112,8 +113,11 @@ const connection = (io) => {
       handleStartGame(io, roomIdentity, challenges);
     });
 
+    /**
+     * Client Disconneting
+     */
     socket.on("disconnecting", () => {
-      console.log("Disconnecting:", socket.id);
+      console.log("Disconnecting:", socket.user.userName, " ", socket.id);
 
       if (!socket.user || !users.has(socket.user.userId)) return;
 
@@ -128,6 +132,13 @@ const connection = (io) => {
         }
       }
     });
+
+    /**
+     * Client Disconnected
+     */
+    socket.on('disconnect', () => {
+      console.log("client disconnected");
+    })
   });
 };
 

@@ -1,7 +1,7 @@
 const {games} = require("../../config/store.js");
 const {Game} = require("../../models/index.js");
 
-const canRejoinGame = async (io, userId) => {
+const canRejoinGame = async (userId) => {
     const gameId = games.get(userId);
     console.log("GameId: ", gameId);
 

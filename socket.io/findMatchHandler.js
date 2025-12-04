@@ -1,5 +1,6 @@
 const handleFindMatch = (io, socket, waitingRooms) => {
     if (waitingRooms.length > 0) {
+      console.log("player removed");
       const room = waitingRooms.shift();
       socket.join(room);
       console.log("Room id : " + room);
@@ -7,6 +8,7 @@ const handleFindMatch = (io, socket, waitingRooms) => {
         roomId: room,
       });
     } else {
+      console.log("player added");
       const room = new Date().toISOString();
       socket.join(room);
       waitingRooms.push(room);
