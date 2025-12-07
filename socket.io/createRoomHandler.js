@@ -1,7 +1,7 @@
 const isValidUser = require("../middlewares/isValidUser.js");
 const {users} = require("../config/store.js");
 
-const handleCreateRoom = (io, socket, roomIdentity, opponentId) => {
+const handleCreateRoom = (io, socket, opponentId) => {
   const result = isValidUser(opponentId);
   if (!result) {
     io.to(socket.id).emit("createRoomFailed", {
@@ -18,6 +18,7 @@ const handleCreateRoom = (io, socket, roomIdentity, opponentId) => {
     });
   }
 
+  const roomIdentity = new Date().toISOString();
   console.log(opponentSocketId);
 
   socket.join(roomIdentity);

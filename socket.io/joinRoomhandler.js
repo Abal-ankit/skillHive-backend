@@ -3,7 +3,7 @@ const handleJoinRoom = (io, socket, roomIdentity) => {
 
     io.to(roomIdentity).emit("game_can_start");
     setTimeout(() => {
-        io.to(roomIdentity).emit("gettingRoomId", {roomId : roomIdentity});
+        io.to(roomIdentity).emit("match_found");
     }, 5000);
 }
 

@@ -49,7 +49,6 @@ const connection = (io) => {
         // End of challenges
         games.delete(socket.user.userId);
         io.to(gameId).emit("challenge_over", {
-          message: "You have run out of challenges",
           score: newScore,
         });
         
@@ -62,7 +61,7 @@ const connection = (io) => {
       // console.log("nextChallenge: ", nextChallenge);
       io.to(socket.id).emit("next_challenge", {
         roomId : gameId,
-        nextChallenge,
+        challenge : nextChallenge,
         currentIndex: questionIndex,
         score: newScore,
       });
@@ -88,8 +87,8 @@ const connection = (io) => {
     /**
      * Create a room
      */
-    socket.on("createRoom", ({roomIdentity, opponentId}) => {
-      canChallenge(io, socket, roomIdentity, opponentId, handleCreateRoom);
+    socket.on("createRoom", ({opponentId}) => {
+      canChallenge(io, socket, opponentId, handleCreateRoom);
     });
 
     /**
@@ -109,8 +108,10 @@ const connection = (io) => {
     /**
      * Start the game
      */
-    socket.on("startGame", ({roomIdentity}) => {
-      handleStartGame(io, roomIdentity, challenges);
+    socket.on("startGame", () => {
+      const rooms = [...socket.rooms].filter((r) => r !== socket.id);
+
+      handleStartGame(io, rooms[0], challenges);
     });
 
     /**

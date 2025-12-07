@@ -4,9 +4,7 @@ const handleFindMatch = (io, socket, waitingRooms) => {
       const room = waitingRooms.shift();
       socket.join(room);
       console.log("Room id : " + room);
-      io.to(room).emit("match_found", {
-        roomId: room,
-      });
+      io.to(room).emit("match_found");
     } else {
       console.log("player added");
       const room = new Date().toISOString();

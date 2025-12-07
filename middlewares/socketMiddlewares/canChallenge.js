@@ -1,6 +1,6 @@
 const {users} = require("../../config/store");
 
-const canChallenge = (io, socket, roomIdentity, opponentId, handleCreateRoom) => {
+const canChallenge = (io, socket, opponentId, handleCreateRoom) => {
     if(!users.has(opponentId)) {
         socket.emit("createRoomFailed", {
             "message" : "User is not connected to the server"
@@ -18,7 +18,7 @@ const canChallenge = (io, socket, roomIdentity, opponentId, handleCreateRoom) =>
       return;
     }
 
-    handleCreateRoom(io, socket, roomIdentity, opponentId);
+    handleCreateRoom(io, socket, opponentId);
 }
 
 module.exports = canChallenge;

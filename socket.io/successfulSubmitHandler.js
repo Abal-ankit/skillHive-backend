@@ -20,7 +20,6 @@ const handleSuccessfulSubmit = (io, socket, questionIndex, challenges) => {
     games.delete(socket.user.userId);
 
     io.to(gameId).emit("challenge_over", {
-      message: "You have run out of challenges",
       score: newScore,
     });
 
